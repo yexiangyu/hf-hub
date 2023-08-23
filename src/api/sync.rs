@@ -11,6 +11,7 @@ use std::collections::HashMap;
 //     Error as ReqwestError,
 // };
 use super::RepoInfo;
+use log::*;
 use std::num::ParseIntError;
 use std::path::{Component, Path, PathBuf};
 use thiserror::Error;
@@ -170,6 +171,9 @@ impl ApiBuilder {
             Ok(p) => Some(p),
             Err(_) => std::env::var("http_proxy").ok(),
         };
+        if let Some(p) = proxy.as_ref() {
+            info!("using proxy={}", p);
+        }
         let proxy = match proxy {
             Some(p) => ureq::Proxy::new(&p).ok(),
             None => None,
