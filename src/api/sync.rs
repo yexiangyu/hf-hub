@@ -166,8 +166,25 @@ impl ApiBuilder {
     /// Consumes the builder and buids the final [`Api`]
     pub fn build(self) -> Result<Api, ApiError> {
         let headers = self.build_headers()?;
-        let client = HeaderAgent::new(ureq::builder().build(), headers.clone());
-        let no_redirect_client = HeaderAgent::new(ureq::builder().redirects(0).build(), headers);
+        let proxy = match std::env::var("https_proxy") {
+            Ok(p) => Some(p),
+            Err(_) => std::env::var("http_proxy").ok(),
+        };
+        let proxy = match proxy {
+            Some(p) => ureq::Proxy::new(&p).ok(),
+            None => None,
+        };
+
+        let builder = match proxy.clone() {
+            Some(p) => ureq::builder().proxy(p),
+            None => ureq::builder(),
+        };
+        let client = HeaderAgent::new(builder.build(), headers.clone());
+        let builder = match proxy {
+            Some(p) => ureq::builder().proxy(p),
+            None => ureq::builder(),
+        };
+        let no_redirect_client = HeaderAgent::new(builder.redirects(0).build(), headers);
         Ok(Api {
             endpoint: self.endpoint,
             url_template: self.url_template,
